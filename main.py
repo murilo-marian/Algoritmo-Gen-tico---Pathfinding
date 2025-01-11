@@ -13,11 +13,11 @@ TAXA_MUTACAO = 0.005
 #genes: left/right preference binary; ignore obstacle weight threshold; ignore obstacle distance threshold
 
 mapa = np.array([[random.randint(0, 9) for _ in range(5)] for _ in range(5)], dtype=object)
-mapa = np.array([[0, 8, 1, 2, 5],
-                  [3, 8, 4, 9, 9],
-                  [4, 7, 1, 9, 1],
-                  [5, 4, 2, 1, 9],
-                  [5, 3, 5, 3, 0]], dtype=object)
+# mapa = np.array([[0, 7, 6, 9, 4],
+#                    [4, 8, 8, 9, 7],
+#                    [4, 4, 5, 6, 0],
+#                    [3, 5, 1, 8, 8],
+#                    [5, 3, 5, 8, 3]], dtype=object)
 pos_inicial = [2, 0]
 pos_alvo = [4, 4]
 
@@ -69,8 +69,15 @@ def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, d
                 #primeira coisa a se fazer é determinar qual direção ele seguiria se fosse a movimentação normal
                 direcao_x = [0, 0]
                 direcao_y = [0, 0]
-                direcao_x[0] += 1 if pos_atual[0] < pos_final[0] else -1
-                direcao_y[1] += 1 if pos_atual[1] < pos_final[1] else -1
+                if pos_atual[0] < pos_final[0]:
+                    direcao_x[0] += 1
+                elif pos_atual[0] > pos_final[0]:
+                    direcao_x[0] += -1
+
+                if pos_atual[1] < pos_final[1]:
+                    direcao_y[1] += 1
+                elif pos_atual[1] > pos_final[1]:
+                    direcao_y[1] += -1
 
                 #agora o algoritmo deve determinar se essa direção é viável, se não, ele vai escolher outra para desviar
 
@@ -99,9 +106,9 @@ def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, d
                         elif indice_y:
                             diferenca_de_pesos_y = abs(movimentos_validos[0][0] - movimentos_validos[indice_y][0])
                         if diferenca_de_pesos_x <= delta_maximo:
-                            pos_atual = nova_pos_x
+                            pos_atual = list(nova_pos_x)
                         elif diferenca_de_pesos_y <= delta_maximo:
-                            pos_atual = nova_pos_y
+                            pos_atual = list(nova_pos_y)
                         else:
                             #primeiro ele vê o peso dos caminhos disponíveis pra desvio
                             #e vai escolher o mais leve
@@ -157,12 +164,13 @@ def movimentacao_base(distancia_x, distancia_y, pos_atual, pos_final, movimentos
     nova_pos_x[0] += 1 if pos_atual[0] < pos_final[0] else -1
     nova_pos_y[1] += 1 if pos_atual[1] < pos_final[1] else -1
 
+    #checa se alguma das posições a considerar é a final, aí já pula direto pq o resto é irrelevante
     if nova_pos_x == pos_final:
         return nova_pos_x
     elif nova_pos_y == pos_final:
         return nova_pos_y
 
-    if any(tuple(nova_pos_x) == movimento for _, movimento in movimentos_validos):
+    if any(tuple(nova_pos_x) == movimento for _, movimento in movimentos_validos) and distancia_x != 0:
         return nova_pos_x
     else:
         return nova_pos_y
@@ -260,4 +268,4 @@ def print_matriz_formatada_np(matriz):
 # print(f"genes da melhor solução: {melhor_solucao}")
 # print(f"Fitness : {avaliar_fitness(melhor_solucao)}")
 
-percorrer_caminho(mapa, pos_inicial, pos_alvo, 1, 3, [0, 1], [1, 0])
+percorrer_caminho(mapa, pos_inicial, pos_alvo, 2, 3, [0, 1], [1, 0])
