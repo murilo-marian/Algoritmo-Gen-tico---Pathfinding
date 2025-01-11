@@ -57,6 +57,7 @@ def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, d
             #vai dar preferência a seguir para a direita ao invés de desviar para cima
 
             movimentos_validos = obter_movimentos_validos(matriz, pos_atual, visitados)
+            print(movimentos_validos)
 
             if movimentos_validos:
                 movimentos_validos.sort(key=lambda x: x[0])
@@ -77,12 +78,6 @@ def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, d
                 #TODO já que ele só testa o primeiro elemento, e se o sort deixou o elemento optimo em segundo ele não vai funcionar direito
                 if direcao == [a - b for a, b in zip(movimentos_validos[0][1], pos_atual)]:
                     proxima_pos = movimentos_validos[0][1]
-                    print(movimentos_validos)
-                    print(movimentos_validos[0][0])
-                    print(movimentos_validos[1][1])
-                    print(movimentos_validos[0][1])
-                    print(movimentos_validos[1][0])
-
                     pos_atual = list(proxima_pos)
                 else:
                     #aqui que vai rolar os desvios e os caralho aquático
@@ -137,6 +132,7 @@ def obter_movimentos_validos(matriz, pos_atual, visitados):
             if nova_pos not in visitados:
                 peso = matriz[nova_pos[0], nova_pos[1]]
                 movimentos_validos.append((peso, nova_pos))
+    return movimentos_validos
 
 #
 # def inicializar_populacao():
