@@ -1,36 +1,44 @@
+import copy
 import random
 from json.encoder import INFINITY
 
 import numpy as np
 
 # parâmetros
-TAMANHO_POPULACAO = 50
-TAMANHO_GENOMA = 20
+TAMANHO_POPULACAO = 10
+TAMANHO_GENOMA = 4
 GERACOES = 5
 TAXA_MUTACAO = 0.005
 
 # genes: left/right preference binary; ignore obstacle weight threshold; ignore obstacle distance threshold
 
-mapa = np.array([[random.randint(0, 9) for _ in range(10)] for _ in range(10)], dtype=object)
-mapa = np.array([[1, 8, 8, 1, 3],
-                  [3, 8, 4, 2, 1],
-                  [4, 5, 7, 2, 1],
-                  [2, 1, 7, 5, 7],
-                  [0, 0, 3, 9, 1]], dtype=object)
-pos_inicial = [2, 0]
-pos_alvo = [4, 4]
+mapa = np.array([[random.randint(0, 9) for _ in range(100)] for _ in range(100)], dtype=object)
+# mapa = np.array([[1, 8, 8, 1, 3],
+#                   [3, 8, 4, 2, 1],
+#                   [4, 5, 7, 2, 1],
+#                   [2, 1, 7, 5, 7],
+#                   [0, 0, 3, 9, 1]], dtype=object)
+pos_inicial = [0, 0]
+pos_alvo = [99, 99]
 
 
-def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, delta_maximo, left_right_preference,
-                      up_down_preference):
+def percorrer_caminho(matriz, pos_inicial, pos_final, individuo):
+    left_right_preference = individuo[0]
+    up_down_preference = individuo[1]
+    distancia_ignorar_pesos = individuo[2]
+    delta_maximo = individuo[3]
+
+    fitness = 0
     pos_atual = pos_inicial
+    fitness -= matriz[pos_atual[0]][pos_atual[1]]
     visitados = []
     visitados.append(pos_atual)  # Marca a posição atual como visitada
     matriz[pos_atual[0], pos_atual[1]] = "X"
 
     print_matriz_formatada_np(matriz)
-
+    iteracao = 0
     while pos_atual != pos_final:
+        iteracao += 1
         distancia_x = abs(pos_atual[0] - pos_final[0])
         distancia_y = abs(pos_atual[1] - pos_final[1])
 
@@ -41,22 +49,29 @@ def percorrer_caminho(matriz, pos_inicial, pos_final, distancia_ignorar_pesos, d
         # caso não esteja, ele faz todos os outros testes
 
         if not movimentos_validos:
+            fitness -= 200
             print("sem movimentos válidos")
             break
         if distancia_x <= distancia_ignorar_pesos and distancia_y <= distancia_ignorar_pesos:
             # mover normal
             pos_atual = movimentacao_base(distancia_x, distancia_y, pos_atual, pos_final, movimentos_validos)
         else:
-            pos_atual = decidir_movimento(movimentos_validos, pos_atual, pos_final, delta_maximo, left_right_preference,
+            pos_atual= decidir_movimento(movimentos_validos, pos_atual, pos_final, delta_maximo, left_right_preference,
                                           up_down_preference)
             if pos_atual is None:
+                fitness -= 200
+                print(iteracao)
                 print("Sem movimentos válidos! Caminho bloqueado.")
                 break
+        peso = matriz[pos_atual[0]][pos_atual[1]]
+        if peso != "X":
+            fitness -= peso
         visitados.append(pos_atual)  # Marca a posição atual como visitada
         matriz[pos_atual[0], pos_atual[1]] = "X"
 
         print_matriz_formatada_np(matriz)
         print("----------------")
+    return fitness
 
 
 def decidir_movimento(movimentos_validos, pos_atual, pos_final, delta_maximo, left_right_preference,
@@ -111,11 +126,9 @@ def decidir_movimento(movimentos_validos, pos_atual, pos_final, delta_maximo, le
             elif diferenca_de_pesos_y <= delta_maximo:
                 pos_atual = direcao_y
                 return pos_atual
-            else:
-                desviar(movimentos_com_menor_peso, pos_atual, left_right_preference, up_down_preference)
         else:
-            print("sem caminho disponível - preso")
-            return None
+            pos_atual = desviar(movimentos_com_menor_peso, pos_atual, left_right_preference, up_down_preference)
+            return pos_atual
 
     return movimentos_validos[0][1]
 
@@ -224,60 +237,84 @@ def obter_movimentos_validos(matriz, pos_atual, visitados):
     return movimentos_validos
 
 
-#
-# def inicializar_populacao():
-#     """gera populaçao inicial de indivíduos"""
-#     return [[random.randint(0, 1) for _ in range(TAMANHO_GENOMA)] for _ in range(TAMANHO_POPULAÇÃO)]
-#
-#
-# def avaliar_fitness(individuo):
-#     return sum(individuo)
-#
-#
-# def selecionar_pais_torneio(populacao, fitness):
-#     tamanho_torneio = 3
-#     pai1 = max(random.sample(list(zip(populacao, fitness)), tamanho_torneio), key=lambda x: x[1])[0]
-#     pai2 = max(random.sample(list(zip(populacao, fitness)), tamanho_torneio), key=lambda x: x[1])[0]
-#     return pai1, pai2
-#
-#
-# def crossover(pai1, pai2):
-#     # sorteia ponto de corte:
-#     ponto_corte = random.randint(1, TAMANHO_GENOMA - 1)
-#     filho1 = pai1[:ponto_corte] + pai2[ponto_corte:]
-#     filho2 = pai2[:ponto_corte] + pai1[ponto_corte:]
-#     return filho1, filho2
-#
-# def mutar(individuo):
-#     for i in range(TAMANHO_GENOMA):
-#         if random.random() < TAXA_MUTACAO:
-#             individuo[i] = 1 - individuo[i]
-#     return individuo
-#
-#
-# def algoritmo_genetico():
-#     populacao = inicializar_populacao()
-#
-#     for geracao in range(GERACOES):
-#         fitness = [avaliar_fitness(individuo) for individuo in populacao]
-#
-#         melhor_individuo = max(populacao, key=avaliar_fitness)
-#         print(
-#             f"Geracao {geracao} : Melhor fitness = {avaliar_fitness(melhor_individuo)} Melhor indivíduo = {melhor_individuo}")
-#
-#         nova_populacao = []
-#
-#         while len(nova_populacao) < TAMANHO_POPULAÇÃO:
-#             pai1, pai2 = selecionar_pais_torneio(populacao, fitness)
-#             filho1, filho2 = crossover(pai1, pai2)
-#             nova_populacao.append(mutar(filho1))
-#             nova_populacao.append(mutar(filho2))
-#
-#         populacao = nova_populacao
-#
-#     return max(populacao, key=avaliar_fitness)
-#
-#
+
+def inicializar_populacao(matriz):
+    """gera populaçao inicial de indivíduos"""
+    populacao = []
+    for i in range(TAMANHO_POPULACAO):
+        individuo = []
+        left_right_preference = random.choice([-1, 1])
+        individuo.append(left_right_preference)
+
+        up_down_preference = random.choice([-1, 1])
+        individuo.append(up_down_preference)
+
+        distancia_ignorar_pesos = random.randint(1, max(matriz.shape))
+        individuo.append(distancia_ignorar_pesos)
+
+        delta_maximo = random.randint(0, 9)
+        individuo.append(delta_maximo)
+        populacao.append(individuo)
+    return populacao
+
+
+def avaliar_fitness(individuo, matriz, pos_inicial, pos_final):
+    mapa_copia = copy.deepcopy(matriz)
+    return percorrer_caminho(mapa_copia, pos_inicial, pos_final, individuo)
+
+
+def selecionar_pais_torneio(populacao, fitness):
+    tamanho_torneio = 3
+    pai1 = max(random.sample(list(zip(populacao, fitness)), tamanho_torneio), key=lambda x: x[1])[0]
+    pai2 = max(random.sample(list(zip(populacao, fitness)), tamanho_torneio), key=lambda x: x[1])[0]
+    return pai1, pai2
+
+
+def crossover(pai1, pai2):
+    # sorteia ponto de corte:
+    ponto_corte = random.randint(1, TAMANHO_GENOMA - 1)
+    filho1 = pai1[:ponto_corte] + pai2[ponto_corte:]
+    filho2 = pai2[:ponto_corte] + pai1[ponto_corte:]
+    return filho1, filho2
+
+def mutar(individuo, matriz):
+    for i in range(TAMANHO_GENOMA):
+        if random.random() < TAXA_MUTACAO:
+            if i == 0 or i == 1:
+                individuo[i] *= -1
+            elif i == 2:
+                numbers = [i for i in range(1, max(matriz.shape) + 1) if i != individuo[i]]
+                individuo[i] = random.choice(numbers)
+            elif i == 3:
+                numbers = [i for i in range(1, 9 + 1) if i != individuo[i]]
+                individuo[i] = random.choice(numbers)
+    return individuo
+
+
+def algoritmo_genetico(matriz, pos_inicial, pos_final):
+    populacao = inicializar_populacao(matriz)
+    fitness = []
+    for geracao in range(GERACOES):
+        fitness = [avaliar_fitness(individuo, matriz, pos_inicial, pos_final) for individuo in populacao]
+
+        melhor_individuo = max(populacao, key=lambda individuo: avaliar_fitness(individuo, matriz, pos_inicial, pos_final))
+        print(
+            f"Geracao {geracao} : Melhor fitness = {avaliar_fitness(melhor_individuo, matriz, pos_inicial, pos_final)} Melhor indivíduo = {melhor_individuo}")
+
+        # nova_populacao = []
+        #
+        # while len(nova_populacao) < TAMANHO_POPULAÇÃO:
+        #     pai1, pai2 = selecionar_pais_torneio(populacao, fitness)
+        #     filho1, filho2 = crossover(pai1, pai2)
+        #     nova_populacao.append(mutar(filho1))
+        #     nova_populacao.append(mutar(filho2))
+        #
+        # populacao = nova_populacao
+
+    print(fitness)
+    return max(populacao, key=lambda individuo: avaliar_fitness(individuo, matriz, pos_inicial, pos_final))
+
+
 
 def print_matriz_formatada_np(matriz):
     # Converte a matriz em strings formatadas
@@ -286,9 +323,9 @@ def print_matriz_formatada_np(matriz):
     print("----------------")
 
 
-# melhor_solucao = algoritmo_genetico()
-# print("melhor solucao encontrada")
-# print(f"genes da melhor solução: {melhor_solucao}")
-# print(f"Fitness : {avaliar_fitness(melhor_solucao)}")
-
-percorrer_caminho(mapa, pos_inicial, pos_alvo, 2, 3, 1, 1)
+melhor_solucao = algoritmo_genetico(mapa, pos_inicial, pos_alvo)
+print("melhor solucao encontrada")
+print(f"genes da melhor solução: {melhor_solucao}")
+print(f"Fitness : {avaliar_fitness(melhor_solucao, mapa, pos_inicial, pos_alvo)}")
+# individuo = [1, -1, 3, 4]
+# percorrer_caminho(mapa, pos_inicial, pos_alvo, individuo)
